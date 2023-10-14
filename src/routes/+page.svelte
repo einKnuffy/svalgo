@@ -29,8 +29,8 @@
 		.map(() => Array(gridSize).fill(Cell.Empty));
 
 	let gameStarted = false;
-	let startPos = [-1, -1];
-	let objectivePos = [-1, -1];
+	let startPos: number[] = [-1, -1];
+	let objectivePos: number[] = [-1, -1];
 
 	const getNeighbours = (node: Node) => {
 		const movements = [
@@ -73,6 +73,7 @@
 			path.unshift(node.position);
 			node = node.parent;
 		}
+
 		return path;
 	};
 
@@ -94,8 +95,7 @@
 		while (openSet.length > 0) {
 			openSet.sort((a, b) => a.fCost - b.fCost);
 			const currentNode = openSet.shift();
-
-			if (!currentNode) return;
+			if (!currentNode) break;
 
 			if (
 				currentNode.position[0] === objectivePos[0] &&
@@ -106,12 +106,12 @@
 				for (const [x, y] of path) {
 					grid[x][y] = Cell.Path;
 				}
-				return;
+				break;
 			}
 
-			closedSet.add(currentNode.position);
-
 			const neighbors = getNeighbours(currentNode);
+			if (neighbors.length === 0) break;
+
 			for (const neighbor of neighbors) {
 				if (closedSet.has(neighbor.position)) {
 					continue;
@@ -149,12 +149,16 @@
 		gameStarted = false;
 	};
 
+	let selectObstacle = false;
 	const setPositions = (x: number, y: number) => {
 		if (gameStarted) {
 			return;
 		}
 
 		if (grid[x][y] === Cell.Empty) {
+			if (selectObstacle) {
+				grid[x][y] = Cell.Obstacle;
+			}
 			if (startPos[0] === -1 && startPos[1] === -1) {
 				startPos = [x, y];
 				grid[x][y] = Cell.Start;
@@ -168,7 +172,7 @@
 
 <div class="flex flex-col items-center my-8">
 	<h1 class="text-3xl font-bold p-3">
-		{#if gameStarted}Game is running: <!-- {:else if objectiveReached} -->Objective reached<!-- {:else} -->Svalgo{/if}
+		{#if gameStarted}Game is running: {:else}Svalgo{/if}
 	</h1>
 	<p>Made with ♥️ by <a href="https;//github.com/einKnuffy">einKnuffy</a></p>
 </div>
@@ -183,12 +187,12 @@
 						Cell.Objective
 							? 'bg-red-500 hover:bg-red-500'
 							: cell == Cell.Start
-							? 'bg-white hover:bg-white'
+							? 'bg-pink-200 hover:bg-pink-200'
 							: cell == Cell.Obstacle
 							? 'bg-blue-900'
+							: cell == Cell.Path
+							? 'bg-white hover:bg-white'
 							: 'bg-primary-focus hover:bg-white hover:bg-opacity-20'} rounded-sm m-0.5"
-						id="{coordX}-{coordY}"
-						aria-hidden
 						on:click={() => setPositions(coordX, coordY)}
 					/>
 				{/each}
@@ -196,13 +200,15 @@
 		{/each}
 	</div>
 	<div class="flex flex-col">
-		<button class="btn btn-primary text-opacity-50 mt-2">
-			<button
-				class="btn btn-success text-opacity-50 mt-12"
-				disabled={gameStarted}
-				on:click={startGame}>Start</button
-			>
-		</button>
+		<button
+			class="btn btn-primary text-opacity-50 mt-2 {selectObstacle ? 'btn-active' : 'btn-ghost'}"
+			on:click={() => (selectObstacle = !selectObstacle)}>Obstacle</button
+		>
+		<button
+			class="btn btn-success text-opacity-50 mt-12"
+			disabled={gameStarted}
+			on:click={startGame}>Start</button
+		>
 	</div>
 </div>
 
