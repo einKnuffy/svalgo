@@ -120,40 +120,46 @@
 
 <div class="flex items-center justify-center">
 	<div class="flex bg-primary p-3 rounded-lg">
-		{#each dataX as coordX}
+		{#each dataX as coordX, idX}
 			<div class="flex flex-col h-full">
-				{#each dataY as coordY}
+				{#each dataY as coordY, idY}
 					<div
-						class={`flex items-center justify-center md:w-8 md:h-8 sm:w-6 sm:h-6 bg-primary-focus hover:bg-[#eeeeee20] ${
-							/* 	objectivePos[0] == coordX && objectivePos[1] == coordY
-								? objectiveReached
-									? 'bg-green-500 hover:bg-green-500'
-									: 'bg-red-500 hover:bg-red-500'
-								: startPos[0] == coordX && startPos[1] == coordY
-								? 'bg-white hover:bg-white'
-								: null : allowedPaths.find((path) => path[0] == coordX && path[1] == coordY)
-								? 'bg-red-500 hover:bg-red-500'
-								: prohibitedPaths.find((path) => path[0] == coordX && path[1] == coordY)
+						class="flex items-center justify-center md:w-8 md:h-8 sm:w-6 sm:h-6 {objectivePos[0] ==
+							coordX && objectivePos[1] == coordY
+							? objectiveReached
 								? 'bg-green-500 hover:bg-green-500'
-								: '#eee' */
-							objectivePos[0] == coordX && objectivePos[1] == coordY && objectiveReached
-								? 'bg-green-500'
-								: objectivePos[0] == coordX && objectivePos[1] == coordY && !objectiveReached
-								? 'bg-red-500'
-								: startPos[0] == coordX && startPos[1] == coordY
-								? 'bg-secondary-content'
-								: /* 	: allowedPaths.includes(() => path[0] == coordX && path[1] == coordY) != null
-								? 'bg-red-500 hover:bg-red-500' */
-								prohibitedPaths.find((path) => path[0] == coordX && path[1] == coordY) != null
-								? 'bg-green-500 hover:bg-green-500'
-								: null
-						} rounded-sm m-0.5`}
+								: 'bg-red-500 hover:bg-red-500'
+							: startPos[0] == coordX && startPos[1] == coordY
+							? 'bg-white hover:bg-white'
+							: prohibitedPaths.find((path) => path[0] == coordX && path[1] == coordY)
+							? 'bg-blue-900'
+							: 'bg-primary-focus hover:bg-white hover:bg-opacity-20'} rounded-sm m-0.5"
+						id="{coordX}-{coordY}"
 						aria-hidden
 						on:click={() => setPositions(coordX, coordY)}
 					/>
 				{/each}
 			</div>
 		{/each}
+		<!-- 	{#each dataX as coordX}
+			<div class="flex flex-col h-full">
+				{#each dataY as coordY}
+					<div
+						class={`flex items-center justify-center md:w-8 md:h-8 sm:w-6 sm:h-6 ${
+							objectivePos[0] == coordX && objectivePos[1] == coordY
+								? objectiveReached
+									? 'bg-green-500 hover:bg-green-500'
+									: 'bg-red-500 hover:bg-red-500'
+								: startPos[0] == coordX && startPos[1] == coordY
+								? 'bg-white hover:bg-white'
+								: 'bg-primary-focus hover:bg-white hover:bg-opacity-20 selection:bg-blue-300'
+						} rounded-sm m-0.5`}
+						class:selected={prohibitedPaths.find((path) => path[0] == coordX && path[1] == coordY)}
+						on:click={() => setPositions(coordX, coordY)}
+					/>
+				{/each}
+			</div>
+		{/each} -->
 	</div>
 	<div class="flex flex-col ml-3">
 		<button
