@@ -175,13 +175,13 @@
 		[0, -1]
 	];
 
-	let walkedPaths;
-
 	const moveCell = (posX = startPos[0], posY = startPos[1], score = 0) => {
+		// isSearching = true;
 		let shortestDistance = Infinity;
 		let offset = [0, 0];
 		let neighbourIsObstacle = false;
 
+		// while (isSearching)
 		neighbours.forEach(([x, y]) => {
 			if (grid[posX + x][posY + y] == Cell.Obstacle) {
 				neighbourIsObstacle = true;
@@ -216,20 +216,67 @@
 		/* 		moveCell(posX + offset[0], posY + offset[1], score); */
 	};
 
-	const startGame = async () => {
+	let spawnedPaths = [];
+	let isSearching = true;
+
+	const aiMovement = (
+		posX = startPos[0],
+		posY = startPos[1],
+		prevDistance: number,
+		wasObstacle = false
+	) => {
+		if (posX == objectivePos[0] && posY == objectivePos[1]) {
+			isSearching = false;
+			objectiveReached = true;
+			return;
+		}
+
+		if (!isSearching) return;
+
+		console.log('Running');
+		console.log(posX, posY);
+		grid[posX][posY] = Cell.Start;
+		console.log(grid[posX][posY]);
+
+		let obstacleNeighbours: number[][] = [];
+
+		neighbours.forEach(([x, y]: number[]) => {
+			if (
+				grid.length <= posX + x ||
+				grid[posX + x].length <= posY + y ||
+				posX + x < 0 ||
+				posY + y < 0
+			)
+				return;
+
+			if (grid[posX + x][posY + y] == Cell.Obstacle) {
+				obstacleNeighbours.push([x, y]);
+				return;
+			}
+		});
+
+		neighbours.forEach(([x, y]) => {
+			if (obstacleNeighbours.find((n) => n[0] == x && n[1] == y)) return;
+
+			let distance = distance2D(posX + x, posY + y, objectivePos[0], objectivePos[1]);
+			if (distance < prevDistance || obstacleNeighbours.length > 0 || wasObstacle)
+				aiMovement(posX + x, posY + y, distance, obstacleNeighbours.length > 0);
+		});
+		// }
+
+		// do
+	};
+
+	const startGame = () => {
 		if (
 			(startPos[0] == -1 && startPos[1] == -1) ||
 			(objectivePos[0] == -1 && objectivePos[1] == -1)
 		)
 			return;
 
-		console.log('Grid: ', grid);
+		$: gameStarted = true;
 
-		console.log('Start: ', startPos);
-		console.log('Objective: ', objectivePos);
-		gameStarted = true;
-
-		while (!objectiveReached) {
+		/* 	while (!objectiveReached) {
 			if (distance2D(startPos[0], startPos[1], objectivePos[0], objectivePos[1]) == 0) {
 				objectiveReached = true;
 				break;
@@ -237,8 +284,13 @@
 
 			await new Promise((resolve) => setTimeout(resolve, 500));
 			moveCell();
-		}
+		} */
 
+		aiMovement(
+			startPos[0],
+			startPos[1],
+			distance2D(startPos[0], startPos[1], objectivePos[0], objectivePos[1])
+		);
 		endGame();
 	};
 
@@ -271,7 +323,8 @@
 
 <div class="flex flex-col items-center my-8">
 	<h1 class="text-3xl font-bold p-3">
-		{#if gameStarted}Game is running{:else if objectiveReached}Objective reached{:else}Svalgo{/if}
+		{#if gameStarted}Game is running: <br />Searching: {isSearching}{:else if objectiveReached}Objective
+			reached{:else}Svalgo{/if}
 	</h1>
 	<p>Made with ♥️ by <a href="https;//github.com/einKnuffy">einKnuffy</a></p>
 </div>
