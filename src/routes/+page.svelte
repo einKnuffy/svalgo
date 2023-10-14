@@ -1,9 +1,26 @@
-<!-- <script lang="ts">
+<script lang="ts">
 	enum Cell {
 		Empty = 0,
 		Start = 1,
 		Objective = 2,
-		Obstacle = 3
+		Obstacle = 3,
+		Path = 4 // Added to track the path
+	}
+
+	class Node {
+		position: number[];
+		gCost: number;
+		hCost: number;
+		fCost: number;
+		parent: Node | null;
+
+		constructor(position: number[], gCost: number, hCost: number) {
+			this.position = position;
+			this.gCost = gCost;
+			this.hCost = hCost;
+			this.fCost = gCost + hCost;
+			this.parent = null;
+		}
 	}
 
 	const gridSize = 25;
@@ -12,99 +29,54 @@
 		.map(() => Array(gridSize).fill(Cell.Empty));
 
 	let gameStarted = false;
-	let startPos: number[] = [-1, -1];
-	let objectivePos: number[] = [-1, -1];
-	let path: any[] = []; // Stores the path found by A* algorithm
+	let startPos = [-1, -1];
+	let objectivePos = [-1, -1];
 
-	// Define a heuristic function for A* (Euclidean distance)
-	const heuristic = (x: number, y: number) => {
-		const dx = x - objectivePos[0];
-		const dy = y - objectivePos[1];
+	const getNeighbours = (node: Node) => {
+		const movements = [
+			{ dx: 1, dy: 0 },
+			{ dx: -1, dy: 0 },
+			{ dx: 0, dy: 1 },
+			{ dx: 0, dy: -1 }
+		];
+
+		const neighbors = [];
+		for (const movement of movements) {
+			const neighborPosition = [node.position[0] + movement.dx, node.position[1] + movement.dy];
+
+			if (isValidPosition(neighborPosition)) {
+				neighbors.push(new Node(neighborPosition, 0, calculateHeuristic(neighborPosition)));
+			}
+		}
+		return neighbors;
+	};
+
+	const calculateHeuristic = (pos: number[]) => {
+		const dx = pos[0] - objectivePos[0];
+		const dy = pos[1] - objectivePos[1];
 		return Math.sqrt(dx * dx + dy * dy);
 	};
 
-	// Define a priority queue for open nodes in A* (sorted by f-score)
-	const openSet: [number, number, number][] = []; // [x, y, fScore]
-	openSet.push([...startPos, heuristic(startPos[0], startPos[1])]);
-
-	const cameFrom: number[][] = Array(gridSize)
-		.fill([])
-		.map(() => Array(gridSize).fill(-1)); // Store the previous node in the best path
-
-	const endGame = () => {
-		gameStarted = false;
-		path = [];
+	const isValidPosition = (pos: number[]) => {
+		return (
+			pos[0] >= 0 &&
+			pos[0] < gridSize &&
+			pos[1] >= 0 &&
+			pos[1] < gridSize &&
+			grid[pos[0]][pos[1]] !== Cell.Obstacle
+		);
 	};
 
-	const neighbors = [
-		[1, 0],
-		[-1, 0],
-		[0, 1],
-		[0, -1]
-	];
-
-	const aStar = () => {
-		while (openSet.length > 0) {
-			// Find the node with the lowest fScore in openSet
-			openSet.sort((a, b) => a[2] - b[2]);
-			const [currentX, currentY, _] = openSet.shift();
-
-			if (currentX === objectivePos[0] && currentY === objectivePos[1]) {
-				// Reconstruct the path and set it
-				path = [];
-				let x = currentX;
-				let y = currentY;
-				while (x !== startPos[0] || y !== startPos[1]) {
-					path.push([x, y]);
-					const [prevX, prevY] = cameFrom[x][y];
-					x = prevX;
-					y = prevY;
-				}
-				path.reverse();
-				return;
-			}
-
-			for (const [dx, dy] of neighbors) {
-				const neighborX = currentX + dx;
-				const neighborY = currentY + dy;
-
-				if (
-					neighborX >= 0 &&
-					neighborX < gridSize &&
-					neighborY >= 0 &&
-					neighborY < gridSize &&
-					grid[neighborX][neighborY] !== Cell.Obstacle
-				) {
-					const tentativeGScore = cameFrom[currentX][currentY] + 1;
-					if (
-						tentativeGScore < cameFrom[neighborX][neighborY] ||
-						cameFrom[neighborX][neighborY] === -1
-					) {
-						cameFrom[neighborX][neighborY] = [currentX, currentY];
-						const fScore = tentativeGScore + heuristic(neighborX, neighborY);
-						openSet.push([neighborX, neighborY, fScore]);
-					}
-				}
-			}
+	const reconstructPath = (node: Node) => {
+		const path = [];
+		while (node.parent) {
+			path.unshift(node.position);
+			node = node.parent;
 		}
+		return path;
 	};
 
-	const moveCell = async () => {
-		if (path.length === 0) {
-			aStar();
-		}
-
-		if (path.length > 0) {
-			const [x, y] = path.shift();
-			grid[startPos[0]][startPos[1]] = Cell.Empty;
-			startPos = [x, y];
-			grid[startPos[0]][startPos[1]] = Cell.Start;
-		}
-
-		await new Promise((resolve) => setTimeout(resolve, 200));
-	};
-
-	const startGame = async () => {
+	const startGame = () => {
 		if (
 			startPos[0] === -1 ||
 			startPos[1] === -1 ||
@@ -115,12 +87,67 @@
 		}
 
 		gameStarted = true;
-		aStar();
-		moveCell();
+
+		const openSet: Node[] = [new Node(startPos, 0, calculateHeuristic(startPos))];
+		const closedSet = new Set();
+
+		while (openSet.length > 0) {
+			openSet.sort((a, b) => a.fCost - b.fCost);
+			const currentNode = openSet.shift();
+
+			if (!currentNode) return;
+
+			if (
+				currentNode.position[0] === objectivePos[0] &&
+				currentNode.position[1] === objectivePos[1]
+			) {
+				// Reconstruct the path and set it
+				const path = reconstructPath(currentNode);
+				for (const [x, y] of path) {
+					grid[x][y] = Cell.Path;
+				}
+				return;
+			}
+
+			closedSet.add(currentNode.position);
+
+			const neighbors = getNeighbours(currentNode);
+			for (const neighbor of neighbors) {
+				if (closedSet.has(neighbor.position)) {
+					continue;
+				}
+
+				const tentativeGCost = currentNode.gCost + 1;
+				if (
+					!openSet.some(
+						(node) =>
+							node.position[0] === neighbor.position[0] && node.position[1] === neighbor.position[1]
+					) ||
+					tentativeGCost < neighbor.gCost
+				) {
+					neighbor.parent = currentNode;
+					neighbor.gCost = tentativeGCost;
+					neighbor.fCost = neighbor.gCost + neighbor.hCost;
+
+					if (
+						!openSet.some(
+							(node) =>
+								node.position[0] === neighbor.position[0] &&
+								node.position[1] === neighbor.position[1]
+						)
+					) {
+						openSet.push(neighbor);
+					}
+				}
+			}
+		}
+
 		endGame();
 	};
 
-	let selectObstacle = false;
+	const endGame = () => {
+		gameStarted = false;
+	};
 
 	const setPositions = (x: number, y: number) => {
 		if (gameStarted) {
@@ -128,192 +155,10 @@
 		}
 
 		if (grid[x][y] === Cell.Empty) {
-			if (selectObstacle) {
-				grid[x][y] = Cell.Obstacle;
-			} else if (startPos[0] === -1 && startPos[1] === -1) {
+			if (startPos[0] === -1 && startPos[1] === -1) {
 				startPos = [x, y];
 				grid[x][y] = Cell.Start;
 			} else if (objectivePos[0] === -1 && objectivePos[1] === -1) {
-				objectivePos = [x, y];
-				grid[x][y] = Cell.Objective;
-			}
-		}
-	};
-</script> -->
-
-<script lang="ts">
-	enum Cell {
-		Empty = 0,
-		Start = 1,
-		Objective = 2,
-		Obstacle = 3
-	}
-
-	const gridSize = 25;
-	let grid = Array(gridSize)
-		.fill(Cell.Empty)
-		.map(() => Array(gridSize).fill(Cell.Empty));
-
-	let gameStarted = false;
-	let objectiveReached = false;
-	let startPos = [-1, -1];
-	let objectivePos = [-1, -1];
-
-	const distance2D = (x1: number, y1: number, x2: number, y2: number) =>
-		Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-
-	const endGame = () => {
-		gameStarted = false;
-		// startPos = [-1, -1];
-		// objectivePos = [-1, -1];
-	};
-
-	const neighbours = [
-		[1, 0],
-		[-1, 0],
-		[0, 1],
-		[0, -1]
-	];
-
-	const moveCell = (posX = startPos[0], posY = startPos[1], score = 0) => {
-		// isSearching = true;
-		let shortestDistance = Infinity;
-		let offset = [0, 0];
-		let neighbourIsObstacle = false;
-
-		// while (isSearching)
-		neighbours.forEach(([x, y]) => {
-			if (grid[posX + x][posY + y] == Cell.Obstacle) {
-				neighbourIsObstacle = true;
-				return;
-			}
-
-			let distance = distance2D(posX + x, posY + y, objectivePos[0], objectivePos[1]);
-
-			if (distance < shortestDistance) {
-				shortestDistance = distance;
-				offset = [x, y];
-				score++;
-			}
-		});
-
-		// do it
-		// spawn all new cells and if no neibours with obstacles around, delete the two most distant
-		// then spawn on these one news, etc. global
-		// if you have a straight line of obstacles that shouldnt be crossed, then walk that line "walk by reducing distant to the obstacle while walking all ways around (vertical and x), if then you get around and you are faster than the others"
-		// then delete the others again and continue walking
-		// BASIC ALGO
-
-		if (score < 0) return;
-
-		grid[startPos[0]][startPos[1]] = Cell.Empty;
-		startPos[0] += offset[0];
-		startPos[1] += offset[1];
-		grid[startPos[0]][startPos[1]] = Cell.Start;
-
-		// grid[posX][posY] = Cell.Start;
-		// await new Promise((resolve) => setTimeout(resolve, 200));
-		/* 		moveCell(posX + offset[0], posY + offset[1], score); */
-	};
-
-	let spawnedPaths = [];
-	let isSearching = true;
-
-	const aiMovement = (
-		posX = startPos[0],
-		posY = startPos[1],
-		prevDistance: number,
-		wasObstacle = false
-	) => {
-		if (posX == objectivePos[0] && posY == objectivePos[1]) {
-			isSearching = false;
-			objectiveReached = true;
-			return;
-		}
-
-		if (!isSearching) return;
-
-		console.log('Running');
-		console.log(posX, posY);
-		grid[posX][posY] = Cell.Start;
-		console.log(grid[posX][posY]);
-
-		let obstacleNeighbours: number[][] = [];
-
-		neighbours.forEach(([x, y]: number[]) => {
-			if (
-				grid.length <= posX + x ||
-				grid[posX + x].length <= posY + y ||
-				posX + x < 0 ||
-				posY + y < 0
-			)
-				return;
-
-			if (grid[posX + x][posY + y] == Cell.Obstacle) {
-				obstacleNeighbours.push([x, y]);
-				return;
-			}
-		});
-
-		neighbours.forEach(([x, y]) => {
-			if (obstacleNeighbours.find((n) => n[0] == x && n[1] == y)) return;
-
-			let distance = distance2D(posX + x, posY + y, objectivePos[0], objectivePos[1]);
-			if (distance < prevDistance || obstacleNeighbours.length > 0 || wasObstacle)
-				aiMovement(posX + x, posY + y, distance, obstacleNeighbours.length > 0);
-		});
-		// }
-
-		// do
-	};
-
-	const startGame = () => {
-		if (
-			(startPos[0] == -1 && startPos[1] == -1) ||
-			(objectivePos[0] == -1 && objectivePos[1] == -1)
-		)
-			return;
-
-		$: gameStarted = true;
-
-		/* 	while (!objectiveReached) {
-			if (distance2D(startPos[0], startPos[1], objectivePos[0], objectivePos[1]) == 0) {
-				objectiveReached = true;
-				break;
-			}
-
-			await new Promise((resolve) => setTimeout(resolve, 500));
-			moveCell();
-		} */
-
-		aiMovement(
-			startPos[0],
-			startPos[1],
-			distance2D(startPos[0], startPos[1], objectivePos[0], objectivePos[1])
-		);
-		endGame();
-	};
-
-	let selectObstacle = false;
-	const setPositions = (x: number, y: number) => {
-		if (gameStarted) return;
-
-		if (objectiveReached) {
-			startPos = [-1, -1];
-			objectivePos = [-1, -1];
-			objectiveReached = false;
-			grid = Array(gridSize)
-				.fill(Cell.Empty)
-				.map(() => Array(gridSize).fill(Cell.Empty));
-		}
-
-		if (grid[x][y] == Cell.Empty) {
-			if (selectObstacle) {
-				grid[x][y] = Cell.Obstacle;
-			} else if (startPos[0] == -1 && startPos[1] == -1) {
-				startPos = [x, y];
-				grid[x][y] = Cell.Start;
-			} else if (objectivePos[0] == -1 && objectivePos[1] == -1) {
 				objectivePos = [x, y];
 				grid[x][y] = Cell.Objective;
 			}
@@ -323,8 +168,7 @@
 
 <div class="flex flex-col items-center my-8">
 	<h1 class="text-3xl font-bold p-3">
-		{#if gameStarted}Game is running: <br />Searching: {isSearching}{:else if objectiveReached}Objective
-			reached{:else}Svalgo{/if}
+		{#if gameStarted}Game is running: <!-- {:else if objectiveReached} -->Objective reached<!-- {:else} -->Svalgo{/if}
 	</h1>
 	<p>Made with ♥️ by <a href="https;//github.com/einKnuffy">einKnuffy</a></p>
 </div>
@@ -337,9 +181,7 @@
 					<div
 						class="flex items-center justify-center lg:w-6 lg:h-6 md:w-5 md:h-5 w-3 h-3 {cell ==
 						Cell.Objective
-							? objectiveReached
-								? 'bg-green-500 hover:bg-green-500'
-								: 'bg-red-500 hover:bg-red-500'
+							? 'bg-red-500 hover:bg-red-500'
 							: cell == Cell.Start
 							? 'bg-white hover:bg-white'
 							: cell == Cell.Obstacle
@@ -354,15 +196,13 @@
 		{/each}
 	</div>
 	<div class="flex flex-col">
-		<button
-			class="btn btn-primary text-opacity-50 mt-2"
-			on:click={() => (selectObstacle = !selectObstacle)}>Obstacle</button
-		>
-		<button
-			class="btn btn-success text-opacity-50 mt-12"
-			disabled={gameStarted}
-			on:click={startGame}>Start</button
-		>
+		<button class="btn btn-primary text-opacity-50 mt-2">
+			<button
+				class="btn btn-success text-opacity-50 mt-12"
+				disabled={gameStarted}
+				on:click={startGame}>Start</button
+			>
+		</button>
 	</div>
 </div>
 
