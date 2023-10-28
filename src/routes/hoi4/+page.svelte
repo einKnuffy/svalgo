@@ -2,8 +2,8 @@
 	import { onMount } from 'svelte';
 
 	// Constants
-	const WINDOW_WIDTH = 800;
-	const WINDOW_HEIGHT = 800;
+	const WINDOW_WIDTH = 700;
+	const WINDOW_HEIGHT = 700;
 
 	// Angle conversion constant
 	const PI_MULTIPLIER = Math.PI / 180.0;
@@ -69,7 +69,7 @@
 		const sinZ = Math.sin(viewAngleZ);
 
 		polygon.distanceToWorld = calculateDistance(0, 0, polygon.positionZ, 0, 0, playerZ);
-		const scale = 1.0 / ((1.0 + Math.abs(polygon.distanceToWorld)) * 15.0);
+		const scale = 1.0 / ((1.0 + Math.abs(polygon.distanceToWorld)) * 0.1);
 
 		for (let i = 0; i < polygon.numVertices; i++) {
 			const relativeX = polygon.objectVerticesX[i] - polygon.positionX;
@@ -223,6 +223,10 @@
 	let canvas: HTMLCanvasElement;
 	let renderer: CanvasRenderingContext2D;
 
+	const delay = (delayMS: number) => {
+		return new Promise((resolve) => setTimeout(resolve, delayMS));
+	};
+
 	onMount(() => {
 		canvas = document.getElementById('canvas') as HTMLCanvasElement;
 		if (!canvas) return;
@@ -245,9 +249,7 @@
 		let worldY = 0.0;
 		let worldZ = 0.0;
 
-		// Enter the main loop
-		let quit = false;
-		function mainLoop() {
+		const main = () => {
 			viewAngleY += 1.0;
 			viewAngleX += 0.1;
 
@@ -266,11 +268,21 @@
 
 			quickSort(polygons, 0, NUM_POLYGONS - 1);
 			display(renderer, polygons);
+		};
 
-			// setTimeout(mainLoop, 100);
-		}
+		// Enter the main loop
+		let quit = false;
+		const mainLoop = async () => {
+			while (!quit) {
+				main();
 
-		// mainLoop();
+				await delay(100);
+
+				// setTimeout(mainLoop, 100);
+			}
+		};
+
+		mainLoop();
 	});
 </script>
 
