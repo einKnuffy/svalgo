@@ -86,20 +86,27 @@
 			rotatedX = tempX;
 			rotatedZ = tempZ;
 
+			if (shortestVertexX === undefined || rotatedX + relativeX < shortestVertexX) {
+				shortestVertexX = rotatedX + relativeX;
+			}
+			if (shortestVertexZ === undefined || rotatedZ + relativeZ < shortestVertexZ) {
+				shortestVertexZ = rotatedZ + relativeZ;
+			}
+
 			let tempX2 = rotatedX * cosZ - rotatedY * sinZ;
 			let tempY = rotatedX * sinZ + rotatedY * cosZ;
 			rotatedX = tempX2;
 			rotatedY = tempY;
 
-			if (shortestVertexX === undefined || rotatedX + relativeX < shortestVertexX) {
+			/* 			if (shortestVertexX === undefined || rotatedX + relativeX < shortestVertexX) {
 				shortestVertexX = rotatedX + relativeX;
 			}
 			if (shortestVertexY === undefined || rotatedY + relativeY < shortestVertexY) {
 				shortestVertexY = rotatedY + relativeY;
-			}
-			if (shortestVertexZ === undefined || rotatedZ + relativeZ < shortestVertexZ) {
+			} */
+			/* 	if (shortestVertexZ === undefined || rotatedZ + relativeZ < shortestVertexZ) {
 				shortestVertexZ = rotatedZ + relativeZ;
-			}
+			} */
 
 			/* 	const screenX = WINDOW_WIDTH / 2.0 + rotatedX * scale;
 			const screenY = WINDOW_HEIGHT / 2.0 + rotatedY * scale;
