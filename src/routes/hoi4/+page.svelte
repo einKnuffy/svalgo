@@ -77,16 +77,6 @@
 			const relativeY = polygon.objectVerticesY[i] - polygon.positionY;
 			const relativeZ = polygon.objectVerticesZ[i] - polygon.positionZ;
 
-			if (shortestVertexX === undefined || relativeX < shortestVertexX) {
-				shortestVertexX = relativeX;
-			}
-			if (shortestVertexY === undefined || relativeY < shortestVertexY) {
-				shortestVertexY = relativeY;
-			}
-			if (shortestVertexZ === undefined || relativeZ < shortestVertexZ) {
-				shortestVertexZ = relativeZ;
-			}
-
 			let rotatedX = relativeX;
 			let rotatedY = relativeY * cosX - relativeZ * sinX;
 			let rotatedZ = relativeY * sinX + relativeZ * cosX;
@@ -100,6 +90,16 @@
 			let tempY = rotatedX * sinZ + rotatedY * cosZ;
 			rotatedX = tempX2;
 			rotatedY = tempY;
+
+			if (shortestVertexX === undefined || rotatedX + relativeX < shortestVertexX) {
+				shortestVertexX = rotatedX + relativeX;
+			}
+			if (shortestVertexY === undefined || rotatedY + relativeY < shortestVertexY) {
+				shortestVertexY = rotatedY + relativeY;
+			}
+			if (shortestVertexZ === undefined || rotatedZ + relativeZ < shortestVertexZ) {
+				shortestVertexZ = rotatedZ + relativeZ;
+			}
 
 			/* 	const screenX = WINDOW_WIDTH / 2.0 + rotatedX * scale;
 			const screenY = WINDOW_HEIGHT / 2.0 + rotatedY * scale;
@@ -119,7 +119,8 @@
 			shortestVertexY,
 			shortestVertexZ
 		);
-		const scale = 1.0 / ((1.0 + Math.abs(polygon.distanceToWorld)) * 0.02);
+		/* const scale = 1.0 / ((1.0 + Math.abs(polygon.distanceToWorld)) * 0.02); */
+		const scale = 5;
 
 		for (let i = 0; i < polygon.numVertices; i++) {
 			screenVertices[i].x = screenVertices[i].x * scale + WINDOW_WIDTH / 2;
