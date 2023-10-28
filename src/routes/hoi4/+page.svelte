@@ -326,7 +326,7 @@
 		const mainLoop = async () => {
 			while (!quit) {
 				main();
-				await delay(10);
+				await delay(5);
 
 				// setTimeout(mainLoop, 100);
 			}
