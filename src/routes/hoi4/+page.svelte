@@ -249,6 +249,27 @@
 		let worldY = 0.0;
 		let worldZ = 0.0;
 
+		const handleInput = () => {
+			document.addEventListener('keydown', (event) => {
+				switch (event.key) {
+					case 'ArrowUp' || 'W':
+						worldZ += 0.1;
+						break;
+					case 'ArrowDown' || 'S':
+						worldZ -= 0.1;
+						break;
+					case 'ArrowLeft' || 'A':
+						worldX -= 0.1;
+						break;
+					case 'ArrowRight' || 'D':
+						worldX += 0.1;
+						break;
+					default:
+						break;
+				}
+			});
+		};
+
 		const main = () => {
 			viewAngleY += 1.0;
 			viewAngleX += 0.1;
@@ -275,13 +296,13 @@
 		const mainLoop = async () => {
 			while (!quit) {
 				main();
-
 				await delay(100);
 
 				// setTimeout(mainLoop, 100);
 			}
 		};
 
+		handleInput();
 		mainLoop();
 	});
 </script>
