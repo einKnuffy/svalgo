@@ -68,13 +68,24 @@
 		const cosZ = Math.cos(viewAngleZ);
 		const sinZ = Math.sin(viewAngleZ);
 
-		polygon.distanceToWorld = calculateDistance(0, 0, polygon.positionZ, 0, 0, playerZ);
-		const scale = 1.0 / ((1.0 + Math.abs(polygon.distanceToWorld)) * 0.1);
+		let shortestVertexX: number = 0;
+		let shortestVertexY: number = 0;
+		let shortestVertexZ: number = 0;
 
 		for (let i = 0; i < polygon.numVertices; i++) {
 			const relativeX = polygon.objectVerticesX[i] - polygon.positionX;
 			const relativeY = polygon.objectVerticesY[i] - polygon.positionY;
 			const relativeZ = polygon.objectVerticesZ[i] - polygon.positionZ;
+
+			if (shortestVertexX === undefined || relativeX < shortestVertexX) {
+				shortestVertexX = relativeX;
+			}
+			if (shortestVertexY === undefined || relativeY < shortestVertexY) {
+				shortestVertexY = relativeY;
+			}
+			if (shortestVertexZ === undefined || relativeZ < shortestVertexZ) {
+				shortestVertexZ = relativeZ;
+			}
 
 			let rotatedX = relativeX;
 			let rotatedY = relativeY * cosX - relativeZ * sinX;
@@ -90,10 +101,29 @@
 			rotatedX = tempX2;
 			rotatedY = tempY;
 
-			const screenX = WINDOW_WIDTH / 2.0 + rotatedX * scale;
+			/* 	const screenX = WINDOW_WIDTH / 2.0 + rotatedX * scale;
 			const screenY = WINDOW_HEIGHT / 2.0 + rotatedY * scale;
 
-			screenVertices[i] = { x: screenX, y: screenY };
+			screenVertices[i] = { x: screenX, y: screenY }; */
+			screenVertices[i] = {
+				x: rotatedX,
+				y: rotatedY
+			};
+		}
+
+		polygon.distanceToWorld = calculateDistance(
+			playerX,
+			playerY,
+			playerZ,
+			shortestVertexX,
+			shortestVertexY,
+			shortestVertexZ
+		);
+		const scale = 1.0 / ((1.0 + Math.abs(polygon.distanceToWorld)) * 0.02);
+
+		for (let i = 0; i < polygon.numVertices; i++) {
+			screenVertices[i].x = screenVertices[i].x * scale + WINDOW_WIDTH / 2;
+			screenVertices[i].y = screenVertices[i].y * scale + WINDOW_HEIGHT / 2;
 		}
 	}
 
@@ -296,7 +326,7 @@
 		const mainLoop = async () => {
 			while (!quit) {
 				main();
-				await delay(100);
+				await delay(10);
 
 				// setTimeout(mainLoop, 100);
 			}
